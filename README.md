@@ -49,7 +49,13 @@ AWS Provider
 
 ```hcl
 module "wafv2_web_acl_association" {
-  source = "git::https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-association-aws.git?ref=v1.1.0"
+  source = "git::https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-association-aws.git?ref=v1.0.0"
+
+  # Required inputs
+  resource_arn = aws_lb.this.arn                # ALB / API Gateway / AppSync / Cognito / App Runner ARN
+  web_acl_arn  = aws_wafv2_web_acl.this.arn      # WAFv2 Web ACL ARN
+
+  # tf-label context (namespace / stage / name propagate naming + tags)
   context = module.this.context
 }
 ```
@@ -113,3 +119,20 @@ module "wafv2_web_acl_association" {
 | <a name="output_association_id"></a> [association\_id](#output\_association\_id) | The ID of the WAFv2 Web ACL Association. |
 | <a name="output_enabled"></a> [enabled](#output\_enabled) | Whether the module is enabled. |
 <!-- END_TF_DOCS -->
+
+## Tests
+
+Unit tests use the Terraform 1.6+ native test framework with a mock AWS provider — no
+real AWS calls or credentials are required. They assert on plan-known values (the tf-label
+`id`, the planned resource count, and the `enabled` output).
+
+```bash
+terraform init -backend=false
+terraform test -test-directory=tests/unit          # unit tests (mock provider)
+make test-unit                                     # same, via Makefile
+```
+
+| Test | What it verifies |
+|------|------------------|
+| `creates_when_enabled` | One `aws_wafv2_web_acl_association` is planned, tf-label id resolves to `eg-test-thing`, `resource_arn` passes through, `enabled` output is `true`. |
+| `disabled_creates_nothing` | With `enabled = false`, zero resources are planned and the `enabled` output is `false`. |
